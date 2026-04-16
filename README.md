@@ -1,0 +1,3 @@
+A production RAG pipeline built over UC Berkeley STEM course catalog data. Combines a Neo4j knowledge graph for prerequisite traversal with a Pinecone vector store for semantic course search. The full pipeline includes data ingestion, chunking, embedding, hybrid retrieval, reranking, grounded generation with citations, and guardrails — evaluated with LangSmith. 
+
+To be completed: A LangGraph multi-hop agent sits on top, using the RAG system as a tool to answer complex course planning questions like prerequisite chains, course sequencing, and workload analysis.
