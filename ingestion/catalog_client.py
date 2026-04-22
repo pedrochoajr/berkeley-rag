@@ -1,16 +1,8 @@
 import requests
 from dotenv import load_dotenv
+from ingestion.config import BASE_URL, CATALOG_ID, HEADERS
 
 load_dotenv()
-
-BASE_URL = "https://app.coursedog.com/api/v1/cm/ucberkeley_peoplesoft/courses/search/%24filters"
-CATALOG_ID = "IiU0X4phYTcf0MnvC8yj"
-HEADERS = {
-    "X-Requested-With": "catalog",
-    "Origin": "https://undergraduate.catalog.berkeley.edu",
-    "Referer": "https://undergraduate.catalog.berkeley.edu/",
-    "Accept": "application/json, text/plain, */*"
-}
 
 def fetch_courses_by_department(department_code: str) -> list[dict]:
     courses = []

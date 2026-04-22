@@ -7,6 +7,7 @@ def test_fetch_compsci_courses():
     
     first = courses[0]
 
+    print(first)
     assert "courseGroupId" in first
     assert "code" in first
     assert "description" in first
