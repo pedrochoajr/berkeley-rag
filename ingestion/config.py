@@ -18,3 +18,9 @@ HEADERS = {
     "Referer": "https://undergraduate.catalog.berkeley.edu/",
     "Accept": "application/json, text/plain, */*"
 }
+
+LEVEL_MAP = {
+    "UGLD": "Lower Division",
+    "UGUD": "Upper Division",
+    "GRAD": "Graduate"
+}
