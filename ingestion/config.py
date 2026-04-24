@@ -1,10 +1,10 @@
 DEPARTMENTS = [
-    "COMPSCI",
-    "EECS",
     "MATH",
     "STAT",
     "PHYSICS",
+    "COMPSCI",
     "ELENG",
+    "EECS",
     "DATA"
 ]
 
