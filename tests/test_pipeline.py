@@ -208,3 +208,64 @@ def test_retrieve_with_metadata_filter(retriever):
     )
     for result in results:
         assert result["metadata"]["department"] == "COMPSCI"
+
+
+from pipeline.reranker import Reranker
+
+@pytest.fixture
+def reranker():
+    return Reranker()
+
+@pytest.fixture
+def sample_results():
+    return [
+        {
+            "course_id": "1042881",
+            "text": "Course: COMPSCI189 - Introduction to Machine Learning\nDepartment: COMPSCI\nDescription: Theoretical foundations of machine learning.",
+            "metadata": {"code": "COMPSCI189", "department": "COMPSCI"}
+        },
+        {
+            "course_id": "1145002",
+            "text": "Course: MATH52 - Calculus II\nDepartment: MATH\nDescription: Continuation of calculus.",
+            "metadata": {"code": "MATH52", "department": "MATH"}
+        },
+        {
+            "course_id": "1147051",
+            "text": "Course: MATH54 - Linear Algebra\nDepartment: MATH\nDescription: Basic linear algebra and differential equations.",
+            "metadata": {"code": "MATH54", "department": "MATH"}
+        }
+    ]
+
+def test_rerank_returns_list(reranker, sample_results):
+    results = reranker.rerank("machine learning", sample_results)
+    assert isinstance(results, list)
+
+def test_rerank_returns_correct_count(reranker, sample_results):
+    results = reranker.rerank("machine learning", sample_results, top_k=2)
+    assert len(results) == 2
+
+def test_rerank_adds_relevance_score(reranker, sample_results):
+    results = reranker.rerank("machine learning", sample_results)
+    for result in results:
+        assert "relevance_score" in result
+        assert isinstance(result["relevance_score"], float)
+
+def test_rerank_preserves_metadata(reranker, sample_results):
+    results = reranker.rerank("machine learning", sample_results)
+    for result in results:
+        assert "course_id" in result
+        assert "text" in result
+        assert "metadata" in result
+
+def test_rerank_orders_by_relevance(reranker, sample_results):
+    results = reranker.rerank("machine learning theory", sample_results)
+    scores = [r["relevance_score"] for r in results]
+    assert scores == sorted(scores, reverse=True)
+
+def test_rerank_empty_results(reranker):
+    results = reranker.rerank("machine learning", [])
+    assert results == []
+
+def test_rerank_ml_query_returns_cs189_first(reranker, sample_results):
+    results = reranker.rerank("machine learning theory", sample_results)
+    assert results[0]["metadata"]["code"] == "COMPSCI189"
