@@ -4,6 +4,7 @@ from pipeline.query_rewriter import QueryRewriter
 from pipeline.retriever import HybridRetriever
 from ingestion.vector_loader import VectorLoader
 from unittest.mock import patch, MagicMock
+from pipeline.generator import Generator
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -269,3 +270,90 @@ def test_rerank_empty_results(reranker):
 def test_rerank_ml_query_returns_cs189_first(reranker, sample_results):
     results = reranker.rerank("machine learning theory", sample_results)
     assert results[0]["metadata"]["code"] == "COMPSCI189"
+
+
+
+
+
+
+
+
+
+
+
+
+@pytest.fixture
+def generator():
+    return Generator()
+
+@pytest.fixture
+def sample_reranked_results():
+    return [
+        {
+            "course_id": "1042881",
+            "text": "Course: COMPSCI189 - Introduction to Machine Learning\nDepartment: COMPSCI\nLevel: Upper Division\nUnits: 4\nDescription: Theoretical foundations of machine learning with emphasis on statistical learning theory.",
+            "metadata": {"code": "COMPSCI189", "department": "COMPSCI"},
+            "relevance_score": 0.98
+        },
+        {
+            "course_id": "1147051",
+            "text": "Course: MATH54 - Linear Algebra\nDepartment: MATH\nLevel: Lower Division\nUnits: 4\nDescription: Basic linear algebra and differential equations.",
+            "metadata": {"code": "MATH54", "department": "MATH"},
+            "relevance_score": 0.75
+        }
+    ]
+
+# ── Happy path ─────────────────────────────────────────────────────────────────
+
+def test_generate_returns_correct_structure(generator, sample_reranked_results):
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "CS 189 is an upper division ML course requiring MATH 54."
+
+    with patch.object(generator.client.chat.completions, 'create', return_value=mock_response):
+        result = generator.generate("tell me about CS 189", sample_reranked_results)
+
+    assert "answer" in result
+    assert "sources" in result
+
+def test_generate_returns_answer_string(generator, sample_reranked_results):
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "CS 189 covers machine learning theory."
+
+    with patch.object(generator.client.chat.completions, 'create', return_value=mock_response):
+        result = generator.generate("what is CS 189", sample_reranked_results)
+
+    assert isinstance(result["answer"], str)
+    assert len(result["answer"]) > 0
+
+def test_generate_returns_sources_list(generator, sample_reranked_results):
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "CS 189 requires MATH 54."
+
+    with patch.object(generator.client.chat.completions, 'create', return_value=mock_response):
+        result = generator.generate("what does CS 189 require", sample_reranked_results)
+
+    assert isinstance(result["sources"], list)
+    assert "COMPSCI189" in result["sources"]
+    assert "MATH54" in result["sources"]
+
+def test_generate_empty_results_returns_fallback(generator):
+    result = generator.generate("machine learning courses", [])
+    assert "couldn't find" in result["answer"].lower()
+    assert result["sources"] == []
+
+# ── Context building ───────────────────────────────────────────────────────────
+
+def test_build_context_includes_all_courses(generator, sample_reranked_results):
+    context = generator._build_context(sample_reranked_results)
+    assert "COMPSCI189" in context
+    assert "MATH54" in context
+
+def test_build_context_includes_relevance_scores(generator, sample_reranked_results):
+    context = generator._build_context(sample_reranked_results)
+    assert "0.98" in context
+    assert "0.75" in context
+
+def test_build_context_numbers_courses(generator, sample_reranked_results):
+    context = generator._build_context(sample_reranked_results)
+    assert "Course 1:" in context
+    assert "Course 2:" in context
